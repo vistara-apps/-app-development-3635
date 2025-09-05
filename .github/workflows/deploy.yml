@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -19,50 +19,39 @@ jobs:
         node-version: '22'
         cache: 'npm'
         
-        - name: Install dependencies
-      run: npm install
+    - name: Install dependencies
+      run: npm ci
 
     - name: Build application
       run: npm run build
       env:
         NODE_OPTIONS: --max-old-space-size=4096
-        
-    - name: Deploy to Vercel (Production)
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-args: '--prod'
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        
-    - name: Deploy to Vercel (Preview)
-      if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-args: '--no-wait'
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        
-    - name: Comment PR with deployment URL
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'placeholder' }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'placeholder' }}
+        VITE_OPENAI_API_KEY: ${{ secrets.VITE_OPENAI_API_KEY || 'placeholder' }}
+        VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY || 'placeholder' }}
+        VITE_APP_URL: ${{ secrets.VITE_APP_URL || 'https://localhost:5173' }}
+        VITE_APP_NAME: ${{ secrets.VITE_APP_NAME || 'FitFlow AI' }}
+        VITE_APP_VERSION: ${{ secrets.VITE_APP_VERSION || '1.0.0' }}
+
+    - name: Comment PR about build success
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
       with:
         script: |
-          const { data: deployments } = await github.rest.repos.listDeployments({
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
             owner: context.repo.owner,
-            repo: context.repo.repo
+            repo: context.repo.repo,
+            body: `✅ **Build Successful!**
+            
+            The application has been built successfully and is ready for deployment.
+            
+            ⚠️ **Note:** Vercel deployment is not configured for this repository.
+            To enable automatic deployments, configure these repository secrets:
+            - \`VERCEL_TOKEN\`
+            - \`VERCEL_ORG_ID\`
+            - \`VERCEL_PROJECT_ID\`
+            
+            You can manually deploy the built application from the \`dist\` folder.`
           });
-          const latestDeployment = deployments[0];
-          if (latestDeployment) {
-            const deploymentUrl = `https://${latestDeployment.environment}.vercel.app`;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🚀 **Preview Deployment Ready!**
-              \n\n📱 **URL:** ${deploymentUrl}
-              \n\nThis preview will be automatically updated when you push new commits to this PR.`
-            });
-          }

@@ -1,25 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import AppShell from './components/AppShell'
 import Dashboard from './components/Dashboard'
 import WorkoutLogger from './components/WorkoutLogger'
 import Progress from './components/Progress'
 import Recommendations from './components/Recommendations'
 import Settings from './components/Settings'
+import AuthPage from './components/auth/AuthPage'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 import { WorkoutProvider } from './context/WorkoutContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 
-function App() {
+function AppContent() {
   const [activeView, setActiveView] = useState('dashboard')
-  const [user, setUser] = useState({
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    subscriptionTier: 'pro',
-    joinDate: '2024-01-15'
-  })
+  const { user, profile } = useAuth()
 
   const renderActiveView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard user={user} />
+        return <Dashboard user={profile} />
       case 'logger':
         return <WorkoutLogger />
       case 'progress':
@@ -27,24 +25,34 @@ function App() {
       case 'recommendations':
         return <Recommendations />
       case 'settings':
-        return <Settings user={user} setUser={setUser} />
+        return <Settings user={profile} />
       default:
-        return <Dashboard user={user} />
+        return <Dashboard user={profile} />
     }
   }
 
   return (
-    <WorkoutProvider>
-      <div className="min-h-screen bg-dark-bg text-dark-text">
-        <AppShell 
-          activeView={activeView} 
-          setActiveView={setActiveView}
-          user={user}
-        >
-          {renderActiveView()}
-        </AppShell>
-      </div>
-    </WorkoutProvider>
+    <ProtectedRoute fallback={<AuthPage />}>
+      <WorkoutProvider>
+        <div className="min-h-screen bg-dark-bg text-dark-text">
+          <AppShell 
+            activeView={activeView} 
+            setActiveView={setActiveView}
+            user={profile}
+          >
+            {renderActiveView()}
+          </AppShell>
+        </div>
+      </WorkoutProvider>
+    </ProtectedRoute>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

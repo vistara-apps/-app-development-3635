@@ -6,10 +6,17 @@ import {
   Settings, 
   User,
   Dumbbell,
-  Crown
+  Crown,
+  LogOut
 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const AppShell = ({ children, activeView, setActiveView, user }) => {
+  const { signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
   const navigationItems = [
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
     { id: 'logger', icon: Dumbbell, label: 'Log Workout' },
@@ -63,12 +70,23 @@ const AppShell = ({ children, activeView, setActiveView, user }) => {
               <User className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-dark-text truncate">{user.name}</p>
+              <p className="text-sm font-medium text-dark-text truncate">
+                {user?.full_name || user?.email || 'User'}
+              </p>
               <div className="flex items-center space-x-1">
                 <Crown className="w-3 h-3 text-accent" />
-                <p className="text-xs text-accent capitalize">{user.subscriptionTier}</p>
+                <p className="text-xs text-accent capitalize">
+                  {user?.subscription_tier || 'free'}
+                </p>
               </div>
             </div>
+            <button
+              onClick={handleSignOut}
+              className="p-2 text-dark-muted hover:text-dark-text hover:bg-dark-surface rounded-lg transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
